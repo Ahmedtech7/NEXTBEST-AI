@@ -1,11 +1,10 @@
 import os
 from contextlib import asynccontextmanager
 from functools import lru_cache
-import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from .engine import load,customer_rows,predict,FEATURES,ACTIONS,COSTS,STAGES,PRODUCTS
+from .engine_lite import load,customer_rows,predict,FEATURES,ACTIONS,COSTS,STAGES,PRODUCTS
 
 @lru_cache(maxsize=1)
 def artifact():return load()
@@ -44,7 +43,7 @@ def dashboard():
 def predict_customer(body:PredictRequest):
  vec=[getattr(body,f) for f in FEATURES]
  scores=predict(artifact(),vec)[0]
- best=int(np.argmax(scores-COSTS*.004))
+ best=max(range(len(scores)),key=lambda i:scores[i]-COSTS[i]*.004)
  return {'probabilities':[round(float(v*100),2) for v in scores], 'recommended_action':ACTIONS[best],
   'uplift_pp':round(float((scores[best]-scores[0])*100),2),
   'disclosure':'Model estimates trained and evaluated exclusively on synthetic randomized data.'}
